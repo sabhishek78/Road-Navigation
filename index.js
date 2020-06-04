@@ -160,52 +160,30 @@ let roads4={
   }
 }
 function navigate(roads,start,end){
- let idArray=[];
- for(let i=0;i<roads.graph.nodes.length;i++){
-   idArray.push(roads.graph.nodes[i].id);
- }
-  // console.log(idArray);
- let permutations=perm(idArray);
-  // console.log(permutations);
- filteredPermutations=permutations.filter((e=>e[0]===start));
-  // console.log(filteredPermutations);
- let validPathsArray=[];
- for(let i=0;i<filteredPermutations.length;i++){
-   if(checkValidPath(filteredPermutations[i],roads)){
-     validPathsArray.push(filteredPermutations[i]);
-   }
- }
-  // console.log(validPathsArray);
- for(let i=0;i<validPathsArray.length;i++){
-   let j=0;
-   while(validPathsArray[i][j]!==end){
-     j++;
-   }
-   validPathsArray[i]=validPathsArray[i].slice(0,j+1);
- }
-  //  console.log(validPathsArray);
-  let distanceArray=[];
-  for(let i=0;i<validPathsArray.length;i++){
-     distanceArray.push(calculateDistance(validPathsArray[i],roads));
+ let path=[];
+ for(let i=0;i<roads.graph.edges.length;i++){
+   let temp=[];
+   temp.push(roads.graph.edges[i].source);
+   temp.push(roads.graph.edges[i].target);
+   path.push(temp);
+ } 
+    //  console.log("pathArray");
+    //  console.log(path);
+     let result=[];
+     result=iteratePath(start,end,path);
+     for(let i=0;i<result.length;i++){
+         result[i].unshift(start);
+        }
+    //  console.log("result=");
+    //  console.log(result);
+     let distanceArray=[];
+  for(let i=0;i<result.length;i++){
+     distanceArray.push(calculateDistance(result[i],roads));
   }
   //  console.log('distanceArray='+distanceArray);
   // console.log(validPathsArray[indexOfSmallest(distanceArray)]);
-  return {"distance":Math.min(...distanceArray),"path":validPathsArray[indexOfSmallest(distanceArray)]}
-}
-function indexOfSmallest(a) {
- var lowest = 0;
- for (var i = 1; i < a.length; i++) {
-  if (a[i] < a[lowest]) lowest = i;
- }
- return lowest;
-}
-function calculateDistance(path,roads){
-  let distance=0;
-  for(let i=0;i<path.length-1;i++){
-    distance=distance+parseInt(distanceBetweenNodes(path[i],path[i+1],roads));
-  }
-  //  console.log("distance="+distance);
-  return distance;
+  return {"distance":Math.min(...distanceArray),"path":result[indexOfSmallest(distanceArray)]}
+     
 }
 function distanceBetweenNodes(node1,node2,roads){
   // console.log("calculating distance between ");
@@ -222,37 +200,102 @@ function distanceBetweenNodes(node1,node2,roads){
     }
   }
 }
-function checkValidPath(path,roads){
-  for(let i=0;i<path.length-1;i++){
-    if(!nodePresent(path[i],path[i+1],roads)){
-      return false;
-    }
-  }
-  return true;
+function indexOfSmallest(a) {
+ var lowest = 0;
+ for (var i = 1; i < a.length; i++) {
+  if (a[i] < a[lowest]) lowest = i;
+ }
+ return lowest;
 }
-function nodePresent(node1,node2,roads){
-  for(let i=0;i<roads.graph.edges.length;i++){
-    if(node1===roads.graph.edges[i].source && node2===roads.graph.edges[i].target || node1===roads.graph.edges[i].target && node2===roads.graph.edges[i].source ){
+function calculateDistance(path,roads){
+  let distance=0;
+  for(let i=0;i<path.length-1;i++){
+    distance=distance+parseInt(distanceBetweenNodes(path[i],path[i+1],roads));
+  }
+  //  console.log("distance="+distance);
+  return distance;
+}
+function getNodesContainingStart(start,path){
+  let temp=[];
+for(let i=0;i<path.length;i++){
+   if(path[i][0]===start || path[i][1]===start){
+     temp.push(path[i]);
+    }
+}
+return temp;
+}
+function updateStart(node,start){
+  // console.log("node=");
+  // console.log(node);
+  // console.log("start=");
+  // console.log(start);
+  if(node[0]===start){
+    return node[1];
+  }
+  else{
+    return node[0];
+  }
+  
+}
+function iteratePath(start,end,path){
+  // console.log("start="+start);
+  // console.log("end="+end);
+   let result=[];
+   let candidateNodes=[];
+   
+   if(startAndEndPresentInPath(start,end,path)){
+      //  console.log("start end present in candidate Nodes");
+      result.push([end]);
+      // console.log(result);
+      return result;
+    }
+    
+   let nodesContainingStart=getNodesContainingStart(start,path);
+   if(nodesContainingStart.length===0){
+     return result;
+   }
+  //  console.log("nodes containing start=");
+  //  console.log(nodesContainingStart);
+   for(let i=0;i<nodesContainingStart.length;i++){
+    //  console.log("i="+i);
+    //  console.log(nodesContainingStart[i]);
+     candidateNodes=getCandidateNodes(nodesContainingStart[i],path);
+    //  console.log("candidate Nodes="+"for"+nodesContainingStart[i]);
+    //  console.log(candidateNodes);
+    //  console.log("start is having value="+start);
+     let newStart=updateStart(nodesContainingStart[i],start);
+    //  console.log("updated value of start="+newStart);
+      let output=iteratePath(newStart,end,candidateNodes);
+     
+      if(output.length!==0){
+        for(let i=0;i<output.length;i++){
+         output[i].unshift(newStart);
+        }
+        // console.log("output=");
+        // console.log(output); 
+        result=result.concat(output);
+        
+      }
+      }
+     return result;
+   }
+function startAndEndPresentInPath(start,end,path){
+  for(let i=0;i<path.length;i++){
+    if(path[i][0]===start && path[i][1]===end ||
+    path[i][1]===start && path[i][0]===end){
       return true;
     }
   }
   return false;
 }
-function perm(xs) {
-  let ret = [];
-
-  for (let i = 0; i < xs.length; i = i + 1) {
-    let rest = perm(xs.slice(0, i).concat(xs.slice(i + 1)));
-
-    if(!rest.length) {
-      ret.push([xs[i]])
-    } else {
-      for(let j = 0; j < rest.length; j = j + 1) {
-        ret.push([xs[i]].concat(rest[j]))
-      }
+function getCandidateNodes(node,path){
+  let candidateNodes=[];
+  for(let i=0;i<path.length;i++){
+    if(path[i]!==node){
+      candidateNodes.push(path[i]);
     }
   }
-  return ret;
+  return candidateNodes;
 }
  console.log(navigate(roads1,2,0));
  console.log(navigate(roads1,0,2));
