@@ -159,154 +159,89 @@ let roads4={
     ]
   }
 }
-function navigate(roads,start,end){
- let path=[];
- for(let i=0;i<roads.graph.edges.length;i++){
-   let temp=[];
-   temp.push(roads.graph.edges[i].source);
-   temp.push(roads.graph.edges[i].target);
-   path.push(temp);
- } 
-    //  console.log("pathArray");
-    //  console.log(path);
-     let result=[];
-     result=iteratePath(start,end,path);
-     for(let i=0;i<result.length;i++){
-         result[i].unshift(start);
-        }
-    //  console.log("result=");
-    //  console.log(result);
-     let distanceArray=[];
-  for(let i=0;i<result.length;i++){
-     distanceArray.push(calculateDistance(result[i],roads));
-  }
-  //  console.log('distanceArray='+distanceArray);
-  // console.log(validPathsArray[indexOfSmallest(distanceArray)]);
-  return {"distance":Math.min(...distanceArray),"path":result[indexOfSmallest(distanceArray)]}
-     
+function navigate(roads, start, end) {
+  let path = roads.graph.edges.map((e) => [e.source, e.target]);
+  let result = iteratePath(start, end, path);
+  result.forEach((path) => path.unshift(start));
+  let distanceArray = [];
+  result.forEach((e) => distanceArray.push(calculateDistance(e, roads)));
+  return {
+    distance: Math.min(...distanceArray),
+    path: result[lowestDistanceIndex(distanceArray)],
+  };
 }
-function distanceBetweenNodes(node1,node2,roads){
-  // console.log("calculating distance between ");
-  // console.log(node1);
-  // console.log(node2);
-  for(let i=0;i<roads.graph.edges.length;i++){
-    if(roads.graph.edges[i].source===node1 && roads.graph.edges[i].target===node2){
-      //  console.log(roads.graph.edges[i].metadata.distance);
-      return roads.graph.edges[i].metadata.distance;
-    }
-    if(roads.graph.edges[i].source===node2 && roads.graph.edges[i].target===node1){
-      //  console.log(roads.graph.edges[i].metadata.distance);
+function distanceBetweenNodes(node1, node2, roads) {
+  for (let i = 0; i < roads.graph.edges.length; i++) {
+    if (
+      (roads.graph.edges[i].source === node1 &&
+        roads.graph.edges[i].target === node2) ||
+      (roads.graph.edges[i].source === node2 &&
+        roads.graph.edges[i].target === node1)
+    ) {
       return roads.graph.edges[i].metadata.distance;
     }
   }
 }
-function indexOfSmallest(a) {
- var lowest = 0;
- for (var i = 1; i < a.length; i++) {
-  if (a[i] < a[lowest]) lowest = i;
- }
- return lowest;
-}
-function calculateDistance(path,roads){
-  let distance=0;
-  for(let i=0;i<path.length-1;i++){
-    distance=distance+parseInt(distanceBetweenNodes(path[i],path[i+1],roads));
+function lowestDistanceIndex(a) {
+  var lowest = 0;
+  for (var i = 1; i < a.length; i++) {
+    if (a[i] < a[lowest]) lowest = i;
   }
-  //  console.log("distance="+distance);
+  return lowest;
+}
+function calculateDistance(path, roads) {
+  let distance = 0;
+  for (let i = 0; i < path.length - 1; i++) {
+    distance =
+      distance + parseInt(distanceBetweenNodes(path[i], path[i + 1], roads));
+  }
   return distance;
 }
-function getNodesContainingStart(start,path){
-  let temp=[];
-for(let i=0;i<path.length;i++){
-   if(path[i][0]===start || path[i][1]===start){
-     temp.push(path[i]);
-    }
+function getNodesContainingStart(start, path) {
+  return (temp = path.filter((e) => e[0] === start || e[1] === start));
 }
-return temp;
+function updateStart(node, start) {
+  return node[0] === start ? node[1] : node[0];
 }
-function updateStart(node,start){
-  // console.log("node=");
-  // console.log(node);
-  // console.log("start=");
-  // console.log(start);
-  if(node[0]===start){
-    return node[1];
+function iteratePath(start, end, path) {
+  let result = [];
+  let candidateNodes = [];
+  if (startAndEndPresentInPath(start, end, path)) {
+    result.push([end]);
+    return result;
   }
-  else{
-    return node[0];
+  let nodesContainingStart = getNodesContainingStart(start, path);
+  if (nodesContainingStart.length === 0) {
+    return result;
   }
-  
-}
-function iteratePath(start,end,path){
-  // console.log("start="+start);
-  // console.log("end="+end);
-   let result=[];
-   let candidateNodes=[];
-   
-   if(startAndEndPresentInPath(start,end,path)){
-      //  console.log("start end present in candidate Nodes");
-      result.push([end]);
-      // console.log(result);
-      return result;
-    }
-    
-   let nodesContainingStart=getNodesContainingStart(start,path);
-   if(nodesContainingStart.length===0){
-     return result;
-   }
-  //  console.log("nodes containing start=");
-  //  console.log(nodesContainingStart);
-   for(let i=0;i<nodesContainingStart.length;i++){
-    //  console.log("i="+i);
-    //  console.log(nodesContainingStart[i]);
-     candidateNodes=getCandidateNodes(nodesContainingStart[i],path);
-    //  console.log("candidate Nodes="+"for"+nodesContainingStart[i]);
-    //  console.log(candidateNodes);
-    //  console.log("start is having value="+start);
-     let newStart=updateStart(nodesContainingStart[i],start);
-    //  console.log("updated value of start="+newStart);
-      let output=iteratePath(newStart,end,candidateNodes);
-     
-      if(output.length!==0){
-        for(let i=0;i<output.length;i++){
-         output[i].unshift(newStart);
-        }
-        // console.log("output=");
-        // console.log(output); 
-        result=result.concat(output);
-        
-      }
-      }
-     return result;
-   }
-function startAndEndPresentInPath(start,end,path){
-  for(let i=0;i<path.length;i++){
-    if(path[i][0]===start && path[i][1]===end ||
-    path[i][1]===start && path[i][0]===end){
-      return true;
+  for (let i = 0; i < nodesContainingStart.length; i++) {
+    candidateNodes = getCandidateNodes(nodesContainingStart[i], path);
+    let newStart = updateStart(nodesContainingStart[i], start);
+    let output = iteratePath(newStart, end, candidateNodes);
+    if (output.length !== 0) {
+      output.forEach((e)=>e.unshift(newStart));
+      result = result.concat(output);
     }
   }
-  return false;
+  return result;
 }
-function getCandidateNodes(node,path){
-  let candidateNodes=[];
-  for(let i=0;i<path.length;i++){
-    if(path[i]!==node){
-      candidateNodes.push(path[i]);
-    }
-  }
-  return candidateNodes;
+function startAndEndPresentInPath(start, end, path) {
+  return path.some(
+    ([point1,point2]) => (point1 === start && point2 === end) || (point2 === start && point1 === end)
+  );
 }
- console.log(navigate(roads1,2,0));
- console.log(navigate(roads1,0,2));
-console.log(navigate(roads2,0,2));
-console.log(navigate(roads2,2,0));
-console.log(navigate(roads2,2,1));
-console.log(navigate(roads3,0,2));
-console.log(navigate(roads4,0,2));
+function getCandidateNodes(node, path) {
+  return path.filter((e) => e !== node);
+}
+console.log(navigate(roads1, 2, 0));
+console.log(navigate(roads1, 0, 2));
+console.log(navigate(roads2, 0, 2));
+console.log(navigate(roads2, 2, 0));
+console.log(navigate(roads2, 2, 1));
+console.log(navigate(roads3, 0, 2));
+console.log(navigate(roads4, 0, 2));
+
 // # Road Navigation
-
-
 // Road systems can be imagined as a graph of intersections connected by lines. The advantage of this is it makes it easier to find the shortest path between any two intersections.
 
 // ## Task
@@ -415,3 +350,14 @@ console.log(navigate(roads4,0,2));
 // - Make sure to include the starting and ending nodes in the path.
 // - The order of the path array *does* matter.
 // - Distance between 2 nodes is located in the `metadata.distance` property of the edge connecting them.
+
+
+
+
+
+// Feedback 3:
+// - use map to create the path list
+// - In indexOfSmallest change variable name a to something more meaningful.
+// - getNodesContainingStart should be using .filter
+// - startAndEndPresentInPath should be using .some and destructuring
+// - getCandidateNodes should be just filtering the path
